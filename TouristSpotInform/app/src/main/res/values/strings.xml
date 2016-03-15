@@ -2,5 +2,7 @@
     <string name="app_name">TouristSpotInform</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_registration">RegistrationActivity</string>
-    <string name="map_key">AIzaSyBviOJg8Tg9L8strpN9VUTAwHyX1O_t6as</string><!--GoogleMapAPIを使うためのkey-->
+    <string name="map_key">AIzaSyBviOJg8Tg9L8strpN9VUTAwHyX1O_t6as</string>
+    <!--<string name="title_activity_maps">Map</string>-->
+    <!--GoogleMapAPIを使うためのkey-->
 </resources>
