@@ -12,55 +12,17 @@
     tools:context="com.example.touristspotinform.InformSettingActivity"
     tools:showIn="@layout/activity_inform_setting">
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+    <Switch
+        android:layout_width="206dp"
+        android:layout_height="wrap_content"
+        android:text="通知"
+        android:id="@+id/switch1"
+        android:checked="false"
+        android:textColor="#20a6e4"
+        android:textSize="36dp"
+        android:textStyle="italic"
+        android:layout_weight="0.04"
+        android:layout_marginTop="195dp"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:weightSum="1">
-
-        <Switch
-            android:layout_width="206dp"
-            android:layout_height="wrap_content"
-            android:text="通知"
-            android:id="@+id/switch1"
-            android:checked="false"
-            android:textColor="#20a6e4"
-            android:textSize="36dp"
-            android:textStyle="italic"
-            android:layout_weight="0.04" />
-
-        <CheckBox
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="歴史"
-            android:id="@+id/checkBox"
-            android:layout_weight="0.04"
-            android:checked="false" />
-
-        <CheckBox
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="温泉"
-            android:id="@+id/checkBox2"
-            android:layout_weight="0.04"
-            android:checked="false" />
-
-        <CheckBox
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="食べ物"
-            android:id="@+id/checkBox3"
-            android:layout_weight="0.04"
-            android:checked="false" />
-
-        <CheckBox
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="すべて"
-            android:id="@+id/checkBox4"
-            android:layout_weight="0.04"
-            android:checked="false" />
-    </LinearLayout>
+        android:layout_centerHorizontal="true" />
 </RelativeLayout>

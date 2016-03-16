@@ -7,9 +7,23 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.provider.Settings;
+import android.util.Log;
+import android.widget.Toast;
+
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.Switch;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import example.com.RegistrationActivity;
 
-public class InformSettingActivity extends AppCompatActivity {
+public class InformSettingActivity extends AppCompatActivity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,6 +31,8 @@ public class InformSettingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_inform_setting);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+
 
 //        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 //        fab.setOnClickListener(new View.OnClickListener() {
@@ -26,6 +42,25 @@ public class InformSettingActivity extends AppCompatActivity {
 //                        .setAction("Action", null).show();
 //            }
 //        });
+
+        // 位置測位プロバイダー一覧を取得
+        String providers = Settings.Secure.getString(getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
+        Log.v("GPS", "Location Providers = " + providers);
+        if(providers.indexOf("gps", 0) < 0) {   //GPSがoffだったら
+            // GPS設定画面の呼出し
+            Toast.makeText(getApplicationContext(), "位置情報を有効にしてください", Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            startActivity(intent);
+
+            //通知設定を強制的にoffにする処理
+            Switch mSwitch = (Switch) findViewById(R.id.switch1);
+            mSwitch.setChecked(false);  // 通知スイッチをOFFに
+
+            finish();   //アプリ終了
+        }
+        else{   //GPSがonだったら
+            Toast.makeText(getApplicationContext(), "位置情報は有効です", Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
