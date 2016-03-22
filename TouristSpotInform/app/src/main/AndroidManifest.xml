@@ -50,6 +50,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service android:name="TestService"/>
         <activity
             android:name="example.com.RegistrationActivity"
             android:label="地点登録"

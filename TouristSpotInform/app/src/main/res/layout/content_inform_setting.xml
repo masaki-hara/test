@@ -12,7 +12,7 @@
     tools:context="com.example.touristspotinform.InformSettingActivity"
     tools:showIn="@layout/activity_inform_setting">
 
-    <Switch
+    <!--<Switch
         android:layout_width="206dp"
         android:layout_height="wrap_content"
         android:text="通知"
@@ -22,7 +22,27 @@
         android:textSize="36dp"
         android:textStyle="italic"
         android:layout_weight="0.04"
-        android:layout_marginTop="195dp"
+        android:layout_marginTop="214dp"
+        android:onClick="onSwitchClicked"
         android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+-->
+    <ToggleButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New ToggleButton"
+        android:id="@+id/tglOnOff"
+        android:onClick="onCheckedChanged"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="通知"
+        android:id="@+id/textView2"
+        android:textSize="36dp"
+        android:layout_above="@+id/toggleButton"
         android:layout_centerHorizontal="true" />
 </RelativeLayout>

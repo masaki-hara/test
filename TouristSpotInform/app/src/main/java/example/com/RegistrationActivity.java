@@ -123,6 +123,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.example.touristspotinform.R;
 import com.google.android.gms.vision.barcode.Barcode;
 
+
+
 public class RegistrationActivity extends FragmentActivity
         implements
         OnMapReadyCallback
@@ -147,8 +149,18 @@ public class RegistrationActivity extends FragmentActivity
     private GoogleApiClient mLocationClient = null; //LocationClientは廃止，GoogleApiClientに。
     private String LocationName;
     private String URL;
-    private double latitude = 0.0;
+    private double latitude = 0.0;  //現在地の座標を格納
     private double longitude = 0.0;
+    private double latitude_camera = 0.0;   //「中心座標取得」で取得した座標を格納
+    private double longitude_camera = 0.0;
+
+    private double latitude_db = 0.0;   //DBから取り出した座標を格納
+    private double longitude_db = 0.0;
+
+    private int first_flag=0; //初回判定用
+
+    private String sqlstr;
+
     private boolean mResolvingError = false;
 
     private FusedLocationProviderApi fusedLocationProviderApi;
@@ -378,6 +390,7 @@ public class RegistrationActivity extends FragmentActivity
 
         // Add a marker in Sydney and move the camera
         LatLng stl = new LatLng(latitude, longitude);
+
         float zoom = 18; // 2.0～21.0
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(stl, zoom));
 
@@ -392,11 +405,50 @@ public class RegistrationActivity extends FragmentActivity
             }
         });
 
+
+        String sql = "select _id,Name " +
+        "from mytable " +
+        "where Name like null " +
+        "order by null " +
+        "limit 100";
+
+//         rawQueryを使用
+     String SQL_SELECT = "SELECT _id,Name,IDO,KEIDO FROM mytable";
+//     selectionArgs : WHERE句を使用するときに指定する。
+     Cursor c = mydb.rawQuery(SQL_SELECT, null);
+
+//         Cursorを先頭に移動する 検索結果が0件の場合にはfalseが返る
+//        if (mCursor.moveToFirst()) {
+//            String text = mCursor.getString(mCursor.getColumnIndex("Name"));
+//             TextViewに表示する
+//            Toast.makeText(RegistrationActivity.this, text, Toast.LENGTH_LONG).show();
+//        } else {
+//             検索結果が無いのでTextViewをクリアする
+//           ;
+//        }
+        if(c.moveToFirst()){
+            do{
+                String text = c.getString(c.getColumnIndex("Name"));
+                latitude_db = c.getDouble(c.getColumnIndex("IDO"));
+                longitude_db = c.getDouble(c.getColumnIndex("KEIDO"));;
+                LatLng point_db = new LatLng(latitude_db, longitude_db); //databese 読み出し用
+                mMarker = mMap.addMarker(new MarkerOptions().position(point_db).title(text));
+                //Toast.makeText(RegistrationActivity.this, text, Toast.LENGTH_LONG).show();
+            }while(c.moveToNext());
+        }
+
+
     }
     public void onGetCenter(View view) {
-        mMarker.remove();
+        if(first_flag==0){
+            first_flag++;
+        }else{
+            mMarker.remove();
+        }
         CameraPosition cameraPos = mMap.getCameraPosition();
-        LatLng stl = new LatLng(cameraPos.target.latitude, cameraPos.target.longitude);
+        latitude_camera=cameraPos.target.latitude;
+        longitude_camera=cameraPos.target.longitude;
+        LatLng stl = new LatLng(latitude_camera,longitude_camera);
         mMarker = mMap.addMarker(new MarkerOptions().position(stl).title("新規登録地点"));
         // オブジェクトを取得
 
@@ -404,11 +456,10 @@ public class RegistrationActivity extends FragmentActivity
         TextView txtKeido = (TextView) findViewById(R.id.keido);//経度を入れるための箱
 
 
-
         //Toast.makeText(this, "中心位置\n緯度:" + cameraPos.target.latitude + "\n経度:" + cameraPos.target.longitude, Toast.LENGTH_LONG).show();
         // 結果表示用テキストに設定
-        txtIdo.setText(String.valueOf("緯度：" + cameraPos.target.latitude)); //double型をstringにしてから渡す
-        txtKeido.setText(String.valueOf("経度：" + cameraPos.target.longitude)); //double型をstringにしてから渡す
+        txtIdo.setText(String.valueOf("緯度：" + latitude_camera)); //double型をstringにしてから渡す
+        txtKeido.setText(String.valueOf("経度：" + longitude_camera)); //double型をstringにしてから渡す
     }
 
         public void onRegistration(View view){
@@ -418,11 +469,11 @@ public class RegistrationActivity extends FragmentActivity
             EditText etxtUrl = (EditText) findViewById(R.id.editURL);//URL格納用
             final String strLocationName = etxtLocationName.getText().toString();
             final String strUrl = etxtUrl.getText().toString();
-        // ダイアログの設定
-        //alertDialog.setIcon(R.drawable.icon);   //アイコン設定
+            // ダイアログの設定
+            //alertDialog.setIcon(R.drawable.icon);   //アイコン設定
         alertDialog.setTitle("確認");      //タイトル設定
         alertDialog.setMessage("以下の内容で登録しますか？\n\n場所名："
-                + strLocationName + "\nURL：" + strUrl + "\n緯度：" + latitude + "\n経度：" + longitude);  //内容(メッセージ)設定
+                + strLocationName + "\nURL：" + strUrl + "\n緯度：" + latitude_camera + "\n経度：" + longitude_camera);  //内容(メッセージ)設定
 
         // OK(肯定的な)ボタンの設定
         alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -433,8 +484,8 @@ public class RegistrationActivity extends FragmentActivity
                 URL=strUrl;
                 values.put("Name",LocationName);
                 values.put("URL",URL);
-                values.put("IDO",latitude);
-                values.put("KEIDO",longitude);
+                values.put("IDO",latitude_camera);
+                values.put("KEIDO",longitude_camera);
 
                 mydb.insert("mytable", null, values);
 
@@ -446,8 +497,8 @@ public class RegistrationActivity extends FragmentActivity
             }
         });
 
-        // NG(否定的な)ボタンの設定
-        alertDialog.setNegativeButton("キャンセル", new DialogInterface.OnClickListener() {
+            // NG(否定的な)ボタンの設定
+            alertDialog.setNegativeButton("キャンセル", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 // NGボタン押下時の処理
                 Log.d("AlertDialog", "Negative which :" + which);
@@ -459,6 +510,31 @@ public class RegistrationActivity extends FragmentActivity
         alertDialog.show();
 
 
+    }
+    public void onDelete(View view){
+        AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
+        alertDialog.setTitle("確認");      //タイトル設定
+        alertDialog.setMessage("登録されているすべての地点と情報を削除しますか？");  //内容(メッセージ)設定
+        // OK(肯定的な)ボタンの設定
+        alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                // OKボタン押下時の処理
+                mydb.delete("mytable", "_id like '%'", null);
+                Log.d("AlertDialog", "Positive which :" + which);
+                Toast.makeText(RegistrationActivity.this, "削除しました", Toast.LENGTH_LONG).show();
+            }
+        });
+        // NG(否定的な)ボタンの設定
+        alertDialog.setNegativeButton("キャンセル", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                // NGボタン押下時の処理
+                Log.d("AlertDialog", "Negative which :" + which);
+            }
+        });
+
+        // ダイアログの作成と描画
+//        alertDialog.create();
+        alertDialog.show();
     }
 }
 

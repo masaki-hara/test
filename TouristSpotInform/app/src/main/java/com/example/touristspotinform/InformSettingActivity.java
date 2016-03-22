@@ -1,6 +1,9 @@
 package com.example.touristspotinform;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -12,6 +15,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import android.widget.CheckBox;
@@ -20,10 +24,24 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
+
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.common.api.GoogleApiClient;
 
 import example.com.RegistrationActivity;
 
-public class InformSettingActivity extends AppCompatActivity{
+import static com.example.touristspotinform.R.id.toggleButton;
+
+public class InformSettingActivity extends AppCompatActivity implements OnCheckedChangeListener {
+
+    private Context context;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,7 +49,6 @@ public class InformSettingActivity extends AppCompatActivity{
         setContentView(R.layout.activity_inform_setting);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
 
 
 //        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -46,21 +63,30 @@ public class InformSettingActivity extends AppCompatActivity{
         // 位置測位プロバイダー一覧を取得
         String providers = Settings.Secure.getString(getContentResolver(), Settings.Secure.LOCATION_PROVIDERS_ALLOWED);
         Log.v("GPS", "Location Providers = " + providers);
-        if(providers.indexOf("gps", 0) < 0) {   //GPSがoffだったら
+
+
+        if (isMyServiceRunning() == true) {   //バックグラウンドでアプリが動いていたら，スイッチをオンにしておく
+            ToggleButton mSwitch = (ToggleButton) findViewById(R.id.tglOnOff);
+            mSwitch.setChecked(true);  // 通知スイッチをONに
+        }
+        if (providers.indexOf("gps", 0) < 0) {   //GPSがoffだったら
             // GPS設定画面の呼出し
             Toast.makeText(getApplicationContext(), "位置情報を有効にしてください", Toast.LENGTH_LONG).show();
             Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             startActivity(intent);
 
             //通知設定を強制的にoffにする処理
-            Switch mSwitch = (Switch) findViewById(R.id.switch1);
+            ToggleButton mSwitch = (ToggleButton) findViewById(R.id.tglOnOff);
             mSwitch.setChecked(false);  // 通知スイッチをOFFに
 
+
             finish();   //アプリ終了
-        }
-        else{   //GPSがonだったら
+        } else {   //GPSがonだったら
             Toast.makeText(getApplicationContext(), "位置情報は有効です", Toast.LENGTH_LONG).show();
         }
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     @Override
@@ -84,5 +110,95 @@ public class InformSettingActivity extends AppCompatActivity{
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+/////////////////////////////////////////////////////
+//    Switch s = (Switch) findViewById(R.id.switch1);
+//
+//    if (s != null) {
+//        s.setOnCheckedChangeListener(this);}
+//////////////////////////////////////////////////////
+
+    public void onCheckedChanged(View view) {
+        ToggleButton tglOnOff = (ToggleButton) view;
+        if (tglOnOff.isChecked()) { // ON状態になったとき
+            Toast.makeText(getApplicationContext(), "ToggleButtonがONになりました。", Toast.LENGTH_SHORT).show();
+            // サービスの開始
+            startService(new Intent(InformSettingActivity.this, TestService.class));
+        }
+        if (!tglOnOff.isChecked()) {
+            //do stuff when Switch if OFF
+            // サービスの停止
+            stopService(new Intent(InformSettingActivity.this, TestService.class));
+        }
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+       /* if(isChecked==true){
+            startService(new Intent(InformSettingActivity.this, TestService.class));
+        }if(isChecked==false){
+            stopService(new Intent(InformSettingActivity.this, TestService.class ) );
+        }*/
+
+    }
+
+    private boolean isYourServiceWorking() {
+        ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo serviceInfo : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (TestService.class.getName().equals(serviceInfo.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+    private boolean isMyServiceRunning() {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (TestService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "InformSetting Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app deep link URI is correct.
+                Uri.parse("android-app://com.example.touristspotinform/http/host/path")
+        );
+        AppIndex.AppIndexApi.start(client, viewAction);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "InformSetting Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app deep link URI is correct.
+                Uri.parse("android-app://com.example.touristspotinform/http/host/path")
+        );
+        AppIndex.AppIndexApi.end(client, viewAction);
+        client.disconnect();
     }
 }
