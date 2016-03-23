@@ -5,4 +5,5 @@
     <string name="map_key">AIzaSyBviOJg8Tg9L8strpN9VUTAwHyX1O_t6as</string>
     <!--<string name="title_activity_maps">Map</string>-->
     <!--GoogleMapAPIを使うためのkey-->
+    <!--<integer name="notification_interval">1</integer>-->
 </resources>

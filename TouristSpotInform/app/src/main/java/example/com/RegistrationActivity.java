@@ -19,110 +19,39 @@ import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.SupportMapFragment;
-
 import android.app.Activity;
 import android.support.v4.app.FragmentActivity;
-
 import com.google.android.gms.maps.OnMapReadyCallback;
-
 import android.location.Location;
-import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
 import android.widget.Toast;
-
-
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-
-import android.app.Activity;
-import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
-
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.LatLng;
-
-import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
-import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
-
 import android.view.Menu;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
-
 import android.Manifest;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
-import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
-
-import android.location.Location;
-import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
-import android.util.Log;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderApi;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import android.location.Location;
-import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
-import android.util.Log;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.FusedLocationProviderApi;
-import com.google.android.gms.location.LocationListener;
-
-import com.google.android.gms.maps.model.Marker;
-
 import com.example.touristspotinform.R;
 import com.google.android.gms.vision.barcode.Barcode;
-
 
 
 public class RegistrationActivity extends FragmentActivity
@@ -132,32 +61,31 @@ public class RegistrationActivity extends FragmentActivity
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener */ {
 
-
-    ///SQLLite///
+    ///SQLite/////////////////////////////////////////////////////
     static final String DB = "sqlite_sample.db";
     static final int DB_VERSION = 1;
     static final String CREATE_TABLE = "create table mytable ( _id integer primary key autoincrement, Name text not null,URL text not null, IDO double not null, KEIDO double not null );";
     static final String DROP_TABLE = "drop table mytable;";
-
     static SQLiteDatabase mydb;
-
     private SimpleCursorAdapter myadapter;
-    ////////////
-
+    //////////////////////////////////////////////////////////////
 
     private GoogleMap mMap = null;
     private GoogleApiClient mLocationClient = null; //LocationClientは廃止，GoogleApiClientに。
-    private String LocationName;
-    private String URL;
+
+    private String LocationName;    //場所名格納
+    private String URL;                //URL
+
     private double latitude = 0.0;  //現在地の座標を格納
     private double longitude = 0.0;
+
     private double latitude_camera = 0.0;   //「中心座標取得」で取得した座標を格納
     private double longitude_camera = 0.0;
 
     private double latitude_db = 0.0;   //DBから取り出した座標を格納
     private double longitude_db = 0.0;
 
-    private int first_flag=0; //初回判定用
+    private int first_flag=0; //初回Map起動の判定用
 
     private String sqlstr;
 

@@ -5,24 +5,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-
-import android.app.Activity;
-import android.content.Intent;
-import android.os.Bundle;
-import android.provider.Settings;
-import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
-
-import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.Switch;
-import android.widget.TextView;
+import android.widget.EditText;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -32,7 +24,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 
 import example.com.RegistrationActivity;
 
-import static com.example.touristspotinform.R.id.toggleButton;
+import static com.example.touristspotinform.R.id.editText;
 
 public class InformSettingActivity extends AppCompatActivity implements OnCheckedChangeListener {
 
@@ -42,6 +34,7 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
+    public static int time=10;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -200,5 +193,10 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
         );
         AppIndex.AppIndexApi.end(client, viewAction);
         client.disconnect();
+    }
+    private void onCheckedDecision(){
+        EditText etxtNum = (EditText) findViewById(editText);//URL格納用
+        final String strNum = etxtNum.getText().toString();
+        time = Integer.parseInt(strNum);
     }
 }

@@ -33,7 +33,7 @@
         android:text="New ToggleButton"
         android:id="@+id/tglOnOff"
         android:onClick="onCheckedChanged"
-        android:layout_centerVertical="true"
+        android:layout_below="@+id/textView2"
         android:layout_centerHorizontal="true" />
 
     <TextView
@@ -43,6 +43,60 @@
         android:text="通知"
         android:id="@+id/textView2"
         android:textSize="36dp"
-        android:layout_above="@+id/toggleButton"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="55dp"
+        android:textColor="#20aef0" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="通知を受けるには，ONのままアプリを終了してください"
+        android:id="@+id/textView3"
+        android:textSize="20dp"
+        android:layout_marginBottom="46dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true" />
+
+    <EditText
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:ems="10"
+        android:maxLength="2"
+        android:id="@+id/editText"
+        android:layout_centerVertical="true"
         android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="分"
+        android:id="@+id/textView4"
+        android:layout_alignBottom="@+id/editText"
+        android:layout_toEndOf="@+id/editText" />
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="決定"
+        android:id="@+id/button"
+        android:layout_below="@+id/editText"
+        android:onClick="onCheckedDecision"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="通知間隔"
+        android:id="@+id/textView5"
+        android:textSize="24dp"
+        android:textColor="#20aef0"
+        android:layout_above="@+id/editText"
+        android:layout_alignEnd="@+id/tglOnOff" />
+
 </RelativeLayout>
