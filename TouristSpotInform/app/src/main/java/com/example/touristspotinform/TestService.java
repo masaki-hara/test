@@ -11,9 +11,11 @@ import android.app.Service;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.LocationProvider;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
@@ -26,6 +28,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.location.Criteria;
 import android.location.LocationManager;
+
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -73,8 +76,10 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
+import android.location.*;
 
 import com.google.android.gms.location.FusedLocationProviderApi;
+import com.google.android.gms.location.LocationListener;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -86,7 +91,18 @@ import com.google.android.gms.vision.barcode.Barcode;
 
 import static android.support.v7.app.NotificationCompat.*;
 
-public class TestService extends Service
+
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.location.Location;
+import android.location.LocationManager;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.util.Log;
+
+
+public class TestService extends Service /*implements LocationListener
         /*implements
         OnMapReadyCallback*/ {
 
@@ -112,9 +128,9 @@ public class TestService extends Service
 
     private String Name;
     private String URL;
-    public static int time=10;
+    private static int time;
 
-    private int first_flag=0; //DB巡回時の初回判定用
+    private int first_flag = 0; //DB巡回時の初回判定用
 
     ///SQLite/////////////////////////////////////////////////////
     static final String DB = "sqlite_sample.db";
@@ -127,12 +143,87 @@ public class TestService extends Service
 
     private GoogleMap mMap = null;
     private GoogleApiClient mLocationClient = null; //LocationClientは廃止，GoogleApiClientに。
-    private LocationManager mLocationManager;
+    //private LocationManager mLocationManager = null;
     private String bestProvider;
 
     private Timer mTimer = null;
     Handler mHandler = new Handler();
 
+
+    private static final String TAG = "BOOMBOOMTESTGPS";
+    private LocationManager mLocationManager = null;
+    private static final int LOCATION_INTERVAL = 60000;//位置測定の頻度.単位は[ms]
+    private static final float LOCATION_DISTANCE = 180f;//位置測定の距離．単位はフィート(1フィート=0.3048[m])
+
+    private class LocationListener implements android.location.LocationListener {
+        Location mLastLocation;
+
+        public LocationListener(String provider) {
+            Log.e(TAG, "LocationListener " + provider);
+            mLastLocation = new Location(provider);
+        }
+
+        @Override
+        public void onLocationChanged(Location location) {
+            Log.e(TAG, "onLocationChanged: " + location);
+            mLastLocation.set(location);
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            Log.e(TAG, "onProviderDisabled: " + provider);
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            Log.e(TAG, "onProviderEnabled: " + provider);
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            Log.e(TAG, "onStatusChanged: " + provider);
+        }
+    }
+
+    LocationListener[] mLocationListeners = new LocationListener[]{
+            new LocationListener(LocationManager.GPS_PROVIDER),
+            new LocationListener(LocationManager.NETWORK_PROVIDER)};
+
+    @Override
+    public IBinder onBind(Intent arg0) {
+        Log.i("TestService", "onBind");
+        return null;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i("TestService", "onStartCommand");
+        super.onStartCommand(intent, flags, startId);
+
+        mTimer = new Timer(true);
+
+        // intentから指定キーの文字列を取得する
+        time = intent.getIntExtra("time",time);
+
+        mTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                mHandler.post(new Runnable() {
+                    public void run() {
+                        Name = null;
+                        URL = null;
+                        Map();
+
+                        if (Name != null) sendNotification();
+                        Log.d("TestService", "Timer run");
+
+                    }
+                });
+            }
+        }, 30000, 30000);//30秒ごとに処理(30000ms)
+
+        return START_STICKY;
+    }
 
     @Override
     public void onCreate() {
@@ -142,11 +233,48 @@ public class TestService extends Service
         MySQLiteOpenHelper hlpr = new MySQLiteOpenHelper(getApplicationContext());
         mydb = hlpr.getReadableDatabase();
         ////////////////////////////
-        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+
+        initializeLocationManager();
+        try {
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
+                    mLocationListeners[1]);
+        } catch (java.lang.SecurityException ex) {
+            Log.i(TAG, "fail to request location update, ignore", ex);
+        } catch (IllegalArgumentException ex) {
+            Log.d(TAG, "network provider does not exist, " + ex.getMessage());
+        }
+        try {
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
+                    mLocationListeners[0]);
+        } catch (java.lang.SecurityException ex) {
+            Log.i(TAG, "fail to request location update, ignore", ex);
+        } catch (IllegalArgumentException ex) {
+            Log.d(TAG, "gps provider does not exist " + ex.getMessage());
+        }
+
+
+        /*
+        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);   //精度が高いを設定
-
         bestProvider = mLocationManager.getBestProvider(criteria, true);
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        //Looper looper = Looper.getMainLooper();
+        //mLocationManager.requestLocationUpdates(bestProvider, 10000, 0, (android.location.LocationListener) onLocationUpdate, looper);
+        */
     }
 
     private static class MySQLiteOpenHelper extends SQLiteOpenHelper {
@@ -165,50 +293,9 @@ public class TestService extends Service
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i("TestService", "onStartCommand");
-
-        mTimer = new Timer(true);
-        mTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                mHandler.post(new Runnable() {
-                    public void run() {
-                        Name = null;
-                        URL = null;
-                        Map();
-
-                        if(Name != null) sendNotification();
-                        Log.d("TestService", "Timer run");
-
-                    }
-                });
-            }
-        }, 30000, 30000);//30秒ごとに処理(30000ms)
-
-
-        return START_STICKY;
-    }
-
-    @Override
     public void onDestroy() {
         Log.i("TestService", "onDestroy");
 
-        // タイマー停止
-        if( mTimer != null ){
-            mTimer.cancel();
-            mTimer = null;
-        }
-
-    }
-
-    @Override
-    public IBinder onBind(Intent arg0) {
-        Log.i("TestService", "onBind");
-        return null;
-    }
-
-    public void Map() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -219,14 +306,58 @@ public class TestService extends Service
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        Location myLocate = mLocationManager.getLastKnownLocation(bestProvider);
-        if(myLocate == null){
-            myLocate = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        //mLocationManager.removeUpdates((android.location.LocationListener) this);
+        super.onDestroy();
+
+        //位置情報の更新停止
+        if (mLocationManager != null) {
+            for (int i = 0; i < mLocationListeners.length; i++) {
+                try {
+                    mLocationManager.removeUpdates(mLocationListeners[i]);
+                } catch (Exception ex) {
+                    Log.i(TAG, "fail to remove location listners, ignore", ex);
+                }
+            }
         }
-        if(myLocate == null){
+        // タイマー停止
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer = null;
+        }
+
+    }
+
+
+    public void Map() {
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        Location myLocate = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if(myLocate == null) {
             myLocate = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        }if(myLocate == null){
+            myLocate = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
         }
+//        LocationProvider myLocate = mLocationManager.getProvider(bestProvider);
+//        if(myLocate == null){
+//            myLocate = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+//        }
+//        if(myLocate == null){
+//            myLocate = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+//        }
+
+        // mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, (android.location.LocationListener) this);
+        /*
+        mLocationManager.removeUpdates((android.location.LocationListener) this);
+        */
         //MapControllerの取得
         //MapController MapCtrl = mapView.getController();
         if (myLocate != null) {
@@ -285,7 +416,7 @@ public class TestService extends Service
     }
     private void sendNotification() {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext());
-        builder.setSmallIcon(R.drawable.ic_cast_on_0_light);
+        builder.setSmallIcon(R.drawable.ic_media_route_on_0_mono_dark);
 
         builder.setContentTitle(Name); // 1行目
         builder.setContentText("この場所のページを開く"); // 2行目
@@ -309,4 +440,11 @@ public class TestService extends Service
         NotificationManagerCompat manager = NotificationManagerCompat.from(getApplicationContext());
         manager.notify(12345, builder.build());
     }
+    private void initializeLocationManager() {
+        Log.e(TAG, "initializeLocationManager");
+        if (mLocationManager == null) {
+            mLocationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+        }
+    }
+
 }

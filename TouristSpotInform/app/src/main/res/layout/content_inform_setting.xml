@@ -67,6 +67,7 @@
         android:maxLength="2"
         android:id="@+id/editText"
         android:layout_centerVertical="true"
+        android:text="10"
         android:layout_centerHorizontal="true" />
 
     <TextView

@@ -280,6 +280,7 @@ public class RegistrationActivity extends FragmentActivity
     /////////////////////////////////////////////////////////////////////////////////////////////////
 */
     public void onMapReady(GoogleMap googleMap) {
+        final AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
         mMap = googleMap;
         //LocationManagerの取得
         //mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -294,14 +295,15 @@ public class RegistrationActivity extends FragmentActivity
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        Location myLocate = mLocationManager.getLastKnownLocation(bestProvider);
-        if(myLocate == null){
+        //Location myLocate = mLocationManager.getLastKnownLocation(bestProvider);
+        Location myLocate = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        /*if(myLocate == null)
             myLocate = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             Toast.makeText(RegistrationActivity.this, "Use GPS...", Toast.LENGTH_LONG).show();
-        }
+        }*/
         if(myLocate == null){
             myLocate = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            Toast.makeText(RegistrationActivity.this, "Couldn't use GPS.\nUse NETWORK", Toast.LENGTH_LONG).show();
+            //Toast.makeText(RegistrationActivity.this, "Couldn't use GPS.\nUse NETWORK", Toast.LENGTH_LONG).show();
         }
         //MapControllerの取得
         //MapController MapCtrl = mapView.getController();
@@ -325,10 +327,51 @@ public class RegistrationActivity extends FragmentActivity
         mMarker =  mMap.addMarker(new MarkerOptions().position(stl).title("現在地"));
         //mMap.moveCamera(CameraUpdateFactory.newLatLng(stl));
         mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
+
             public boolean onMarkerClick(Marker marker) {
+
                 // この marker は保存するとリークすると思われる。
-                String msg = marker.getTitle();
-                Toast.makeText(RegistrationActivity.this, msg, Toast.LENGTH_LONG).show();
+                final String msg = marker.getTitle();
+                //Toast.makeText(RegistrationActivity.this, msg, Toast.LENGTH_LONG).show();
+
+                // ダイアログの設定
+                //alertDialog.setIcon(R.drawable.icon);   //アイコン設定
+
+                alertDialog.setTitle("登録地点の削除");      //タイトル設定
+                alertDialog.setMessage("選択した地点を削除していいですか？");  //内容(メッセージ)設定
+
+                // OK(肯定的な)ボタンの設定
+                alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // OKボタン押下時の処理
+                        //ContentValues values = new ContentValues();
+                        LocationName = msg;//マーカータイトルをコピー
+                        if(LocationName.equals("現在地")  || LocationName.equals("新規登録地点")) {
+                            Toast.makeText(RegistrationActivity.this, "現在地・新規登録地点はDBに登録されていません", Toast.LENGTH_LONG).show();
+                        }
+                        else {
+                            mydb.delete("mytable", "Name = ?", new String[]{LocationName});//DBにマーカータイトルと同じものがあれば削除
+                            Toast.makeText(RegistrationActivity.this, "DBから削除しました", Toast.LENGTH_LONG).show();
+                        }
+                /*Cursor cursor = mydb.query("mytable", new String[]{"_id", "data"}, null, null, null, null, "_id DESC");
+                startManagingCursor(cursor);
+                myadapter.changeCursor(cursor);*/
+                        Log.d("AlertDialog", "Positive which :" + which);
+
+                    }
+                });
+
+                // NG(否定的な)ボタンの設定
+                alertDialog.setNegativeButton("キャンセル", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // NGボタン押下時の処理
+                        Log.d("AlertDialog", "Negative which :" + which);
+                    }
+                });
+
+                // ダイアログの作成と描画
+//        alertDialog.create();
+                alertDialog.show();
                 return false;
             }
         });

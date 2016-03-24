@@ -24,8 +24,6 @@ import com.google.android.gms.common.api.GoogleApiClient;
 
 import example.com.RegistrationActivity;
 
-import static com.example.touristspotinform.R.id.editText;
-
 public class InformSettingActivity extends AppCompatActivity implements OnCheckedChangeListener {
 
     private Context context;
@@ -34,7 +32,7 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
-    public static int time=10;
+    private static int time=10;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,9 +113,17 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
     public void onCheckedChanged(View view) {
         ToggleButton tglOnOff = (ToggleButton) view;
         if (tglOnOff.isChecked()) { // ON状態になったとき
-            Toast.makeText(getApplicationContext(), "ToggleButtonがONになりました。", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getApplicationContext(), "ToggleButtonがONになりました。", Toast.LENGTH_SHORT).show();
+
+            // 遷移先のactivityを指定してintentを作成
+            Intent intent = new Intent(InformSettingActivity.this, TestService.class);
+            // intentへ添え字付で値を保持させる
+            intent.putExtra("time", time);
             // サービスの開始
-            startService(new Intent(InformSettingActivity.this, TestService.class));
+            startService(intent);
+
+
+
         }
         if (!tglOnOff.isChecked()) {
             //do stuff when Switch if OFF
@@ -195,8 +201,8 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
         client.disconnect();
     }
     private void onCheckedDecision(){
-        EditText etxtNum = (EditText) findViewById(editText);//URL格納用
-        final String strNum = etxtNum.getText().toString();
+        EditText etxtNum = (EditText) findViewById(R.id.editText);
+        String strNum = etxtNum.getText().toString();
         time = Integer.parseInt(strNum);
     }
 }
