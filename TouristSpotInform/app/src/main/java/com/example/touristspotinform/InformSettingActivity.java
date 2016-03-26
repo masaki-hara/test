@@ -73,7 +73,7 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
 
             finish();   //アプリ終了
         } else {   //GPSがonだったら
-            Toast.makeText(getApplicationContext(), "位置情報は有効です", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "位置情報は有効です", Toast.LENGTH_SHORT).show();
         }
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -103,29 +103,22 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
         return super.onOptionsItemSelected(item);
     }
 
-/////////////////////////////////////////////////////
-//    Switch s = (Switch) findViewById(R.id.switch1);
-//
-//    if (s != null) {
-//        s.setOnCheckedChangeListener(this);}
-//////////////////////////////////////////////////////
-
     public void onCheckedChanged(View view) {
         ToggleButton tglOnOff = (ToggleButton) view;
-        if (tglOnOff.isChecked()) { // ON状態になったとき
+        if (tglOnOff.isChecked()) { // トグルボタンがON状態になったとき
             //Toast.makeText(getApplicationContext(), "ToggleButtonがONになりました。", Toast.LENGTH_SHORT).show();
 
             // 遷移先のactivityを指定してintentを作成
             Intent intent = new Intent(InformSettingActivity.this, TestService.class);
             // intentへ添え字付で値を保持させる
-            intent.putExtra("time", time);
+            intent.putExtra("time", time);  //TestSeviceクラスへ渡す変数timeには通知間隔で決定した値が入っている
             // サービスの開始
             startService(intent);
 
 
 
         }
-        if (!tglOnOff.isChecked()) {
+        if (!tglOnOff.isChecked()) {    //トグルボタンがOFF状態になったとき
             //do stuff when Switch if OFF
             // サービスの停止
             stopService(new Intent(InformSettingActivity.this, TestService.class));
@@ -200,9 +193,24 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
         AppIndex.AppIndexApi.end(client, viewAction);
         client.disconnect();
     }
-    private void onCheckedDecision(){
-        EditText etxtNum = (EditText) findViewById(R.id.editText);
-        String strNum = etxtNum.getText().toString();
-        time = Integer.parseInt(strNum);
+    public void onCheckedDecision(View view){   //通知間隔の決定ボタンが押された時の処理
+        EditText etxtNum = (EditText) findViewById(R.id.editText);  //Edit textから入力された値を取得
+        if(!etxtNum.getText().toString().equals("")){   //空白でなければ
+            final String strNum = etxtNum.getText().toString(); //Edit text の中身をString型に変換
+            final int intNum = Integer.parseInt(strNum);    //String型からinteger型へ
+            if (intNum != 0){   //integerが0以外なら実行
+                time = Integer.parseInt(strNum);   //TestServiceクラスへ渡すtimeにintegerの中身を代入
+
+                stopService(new Intent(InformSettingActivity.this, TestService.class)); //誤動作防止のためServiceを停止
+                //通知設定を強制的にoffにする処理
+                ToggleButton mSwitch = (ToggleButton) findViewById(R.id.tglOnOff);
+                mSwitch.setChecked(false);  // 通知スイッチをOFFに
+                Toast.makeText(getApplicationContext(), "通知間隔を"+time+"分に設定しました", Toast.LENGTH_LONG).show();
+            }else{  //integerが0なら
+                Toast.makeText(getApplicationContext(), "0は入力しないでください", Toast.LENGTH_SHORT).show();
+            }
+        }else{  //Edit textの中身が空白だったら
+            Toast.makeText(getApplicationContext(), "数値が未入力です", Toast.LENGTH_SHORT).show();
+        }
     }
 }

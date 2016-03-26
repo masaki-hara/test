@@ -19,7 +19,6 @@ import android.os.Looper;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -28,7 +27,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.location.Criteria;
 import android.location.LocationManager;
-
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -40,67 +38,41 @@ import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.SupportMapFragment;
-
 import android.app.Activity;
 import android.support.v4.app.FragmentActivity;
-
 import com.google.android.gms.maps.OnMapReadyCallback;
-
 import android.location.Location;
 import android.widget.Toast;
-
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-
-import android.util.Log;
 import android.widget.TextView;
-
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
-
 import android.view.Menu;
 import android.widget.Button;
 import android.widget.EditText;
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
 import android.location.*;
-
 import com.google.android.gms.location.FusedLocationProviderApi;
-import com.google.android.gms.location.LocationListener;
-
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import com.example.touristspotinform.R;
 import com.google.android.gms.vision.barcode.Barcode;
-
 import static android.support.v7.app.NotificationCompat.*;
-
-
-import android.app.Service;
-import android.content.Context;
-import android.content.Intent;
-import android.location.Location;
-import android.location.LocationManager;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.util.Log;
-
 
 public class TestService extends Service /*implements LocationListener
         /*implements
@@ -126,9 +98,9 @@ public class TestService extends Service /*implements LocationListener
     private double distance = 0.0;      //DBから取り出したばかりの座標への距離
     private double distance_old = 0.0;  //DBから取り出した古いほうの座標への距離
 
-    private String Name;
-    private String URL;
-    private static int time;
+    private String Name;    //DBから取り出した「場所の名前」を格納
+    private String URL;     //DBから取り出した「URL」を格納
+    private static int time;    //通知間隔設定用（分単位）
 
     private int first_flag = 0; //DB巡回時の初回判定用
 
@@ -141,19 +113,19 @@ public class TestService extends Service /*implements LocationListener
     private SimpleCursorAdapter myadapter;
     //////////////////////////////////////////////////////////////
 
-    private GoogleMap mMap = null;
+    private GoogleMap mMap = null;  //GoogleMapを使うため
     private GoogleApiClient mLocationClient = null; //LocationClientは廃止，GoogleApiClientに。
     //private LocationManager mLocationManager = null;
     private String bestProvider;
 
-    private Timer mTimer = null;
+    private Timer mTimer = null;    //一定時間おきに通知をするためのタイマー
     Handler mHandler = new Handler();
 
 
     private static final String TAG = "BOOMBOOMTESTGPS";
-    private LocationManager mLocationManager = null;
-    private static final int LOCATION_INTERVAL = 60000;//位置測定の頻度.単位は[ms]
-    private static final float LOCATION_DISTANCE = 180f;//位置測定の距離．単位はフィート(1フィート=0.3048[m])
+    private LocationManager mLocationManager = null;    //現在地を扱うためのもの
+    private static final int LOCATION_INTERVAL = 60000; //位置測定の頻度.単位は[ms]
+    private static final float LOCATION_DISTANCE = 150f;    //位置測定の距離．単位はフィート(1フィート=0.3048[m])
 
     private class LocationListener implements android.location.LocationListener {
         Location mLastLocation;
@@ -187,7 +159,8 @@ public class TestService extends Service /*implements LocationListener
 
     LocationListener[] mLocationListeners = new LocationListener[]{
             new LocationListener(LocationManager.GPS_PROVIDER),
-            new LocationListener(LocationManager.NETWORK_PROVIDER)};
+            new LocationListener(LocationManager.NETWORK_PROVIDER),
+            new LocationListener(LocationManager.PASSIVE_PROVIDER)};
 
     @Override
     public IBinder onBind(Intent arg0) {
@@ -203,40 +176,46 @@ public class TestService extends Service /*implements LocationListener
         mTimer = new Timer(true);
 
         // intentから指定キーの文字列を取得する
-        time = intent.getIntExtra("time",time);
+        time = intent.getIntExtra("time", 3);    //"time"の後ろはデフォルト値。変数NG
 
         mTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 mHandler.post(new Runnable() {
                     public void run() {
-                        Name = null;
-                        URL = null;
-                        Map();
-
-                        if (Name != null) sendNotification();
+                        Name = null;    //場所の名前Nameをリセット
+                        URL = null;     //URLをリセット
+                        Map();           //周囲約200mの範囲のうち，DBに登録されている地点からもっとも近い地点のNameとURLを抽出する
+                        if (Name != null) sendNotification();   //Map()で選ばれた地点を，タスクバーで通知する処理
                         Log.d("TestService", "Timer run");
-
                     }
                 });
             }
-        }, 30000, 30000);//30秒ごとに処理(30000ms)
+        }, 60000*time, 60000*time);//1分単位(60000ms)で繰り返し処理。通知設定がOFFになるか，Serviceのタスクの続く限り。
 
         return START_STICKY;
     }
 
     @Override
-    public void onCreate() {
+    public void onCreate() {    //TestServiceが始まって一番に実行
         Log.i("TestService", "onCreate");
 
-        ////////////////////////////
+        ///SQLiteからデータベースをRead/////////////////////////
         MySQLiteOpenHelper hlpr = new MySQLiteOpenHelper(getApplicationContext());
         mydb = hlpr.getReadableDatabase();
-        ////////////////////////////
-
+        ////////////////////////////////////////////////////////
 
         initializeLocationManager();
-        try {
+        try {   //パッシブ。端末上のほかのアプリの力を借りて位置情報を得る
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.PASSIVE_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
+                    mLocationListeners[2]);
+        } catch (java.lang.SecurityException ex) {
+            Log.i(TAG, "fail to request location update, ignore", ex);
+        } catch (IllegalArgumentException ex) {
+            Log.d(TAG, "passive provider does not exist " + ex.getMessage());
+        }
+        try {   //ネットワーク。回線から大体の位置情報を得る
             mLocationManager.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
                     mLocationListeners[1]);
@@ -245,7 +224,7 @@ public class TestService extends Service /*implements LocationListener
         } catch (IllegalArgumentException ex) {
             Log.d(TAG, "network provider does not exist, " + ex.getMessage());
         }
-        try {
+        try {   //GPS。GPS衛星から精密な位置情報を得る。消費電力は高い
             mLocationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
                     mLocationListeners[0]);
@@ -254,7 +233,6 @@ public class TestService extends Service /*implements LocationListener
         } catch (IllegalArgumentException ex) {
             Log.d(TAG, "gps provider does not exist " + ex.getMessage());
         }
-
 
         /*
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -277,7 +255,7 @@ public class TestService extends Service /*implements LocationListener
         */
     }
 
-    private static class MySQLiteOpenHelper extends SQLiteOpenHelper {
+    private static class MySQLiteOpenHelper extends SQLiteOpenHelper {  //SQLiteを使うためのopen helper
         public MySQLiteOpenHelper(Context c) {
             super(c, DB, null, DB_VERSION);
         }
@@ -293,7 +271,7 @@ public class TestService extends Service /*implements LocationListener
     }
 
     @Override
-    public void onDestroy() {
+    public void onDestroy() {       //通知設定がOFFになる or Serviceのタスクが殺されたら
         Log.i("TestService", "onDestroy");
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -309,7 +287,7 @@ public class TestService extends Service /*implements LocationListener
         //mLocationManager.removeUpdates((android.location.LocationListener) this);
         super.onDestroy();
 
-        //位置情報の更新停止
+        //位置情報の更新を停止
         if (mLocationManager != null) {
             for (int i = 0; i < mLocationListeners.length; i++) {
                 try {
@@ -384,7 +362,7 @@ public class TestService extends Service /*implements LocationListener
                             (longitude_min <= longitude_db) && (longitude_max >= longitude_db)){    //DBから読みだしたポイントの緯経が範囲内なら
                         if(first_flag!=0) { //DBのデータが2番目以降なら
 
-                            distance = Math.sqrt(Math.pow((latitude - latitude_db),2) + Math.pow((longitude - longitude_db),2));
+                            distance = Math.sqrt(Math.pow((latitude - latitude_db),2) + Math.pow((longitude - longitude_db),2));    //3平方の定理で距離を求める。
                             distance_old = Math.sqrt(Math.pow((latitude - latitude_db_old),2) + Math.pow((longitude - longitude_db_old),2));
                             if(distance_old > distance) {                                   //一つ前のデータより距離がみじかければ
                                 Name = c.getString(c.getColumnIndex("Name"));
@@ -434,11 +412,11 @@ public class TestService extends Service /*implements LocationListener
         PendingIntent pending = PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(pending);
 
-        builder.setTicker("近くに登録されたスポットがあります"); // 通知到着時に通知バーに表示(4.4まで)
+        builder.setTicker("近くに登録されたスポットがあります"); // 通知到着時に通知バーに表示(Android4.4まで)
 // 5.0からは表示されない
 
         NotificationManagerCompat manager = NotificationManagerCompat.from(getApplicationContext());
-        manager.notify(12345, builder.build());
+        manager.notify(12345, builder.build()); //12345は適当
     }
     private void initializeLocationManager() {
         Log.e(TAG, "initializeLocationManager");

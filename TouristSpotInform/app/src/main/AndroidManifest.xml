@@ -43,6 +43,7 @@
         <activity
             android:name=".InformSettingActivity"
             android:label="観光地通知"
+            android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -53,7 +54,8 @@
         <service android:name="TestService"/>
         <activity
             android:name="example.com.RegistrationActivity"
-            android:label="地点登録"
+            android:label="通知地点登録"
+            android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar">
         </activity>
         <uses-library android:name="com.google.android.maps" /><!-- Android Mapsのライブラリを使用する宣言 -->

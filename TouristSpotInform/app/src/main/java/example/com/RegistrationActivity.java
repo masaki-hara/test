@@ -36,6 +36,8 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import android.util.Log;
 import android.widget.TextView;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -100,6 +102,7 @@ public class RegistrationActivity extends FragmentActivity
     private LocationManager mLocationManager;
     private String bestProvider;
     private Marker mMarker = null;
+
 
     /* private static final LocationRequest REQUEST = LocationRequest.create()
              .setInterval(5000) // 5 seconds
@@ -324,7 +327,14 @@ public class RegistrationActivity extends FragmentActivity
         float zoom = 18; // 2.0～21.0
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(stl, zoom));
 
-        mMarker =  mMap.addMarker(new MarkerOptions().position(stl).title("現在地"));
+        MarkerOptions options_now = new MarkerOptions();
+        options_now.position(stl);
+        options_now.title("現在地");
+        // アイコンの色選択
+        BitmapDescriptor icon_now = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE);
+        options_now.icon(icon_now);
+        mMarker = mMap.addMarker(options_now);
+
         //mMap.moveCamera(CameraUpdateFactory.newLatLng(stl));
         mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
 
@@ -403,7 +413,15 @@ public class RegistrationActivity extends FragmentActivity
                 latitude_db = c.getDouble(c.getColumnIndex("IDO"));
                 longitude_db = c.getDouble(c.getColumnIndex("KEIDO"));;
                 LatLng point_db = new LatLng(latitude_db, longitude_db); //databese 読み出し用
-                mMarker = mMap.addMarker(new MarkerOptions().position(point_db).title(text));
+
+                MarkerOptions options = new MarkerOptions();
+                options.position(point_db);
+                options.title(text);
+                // (1) 色選択
+                BitmapDescriptor icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN);
+                options.icon(icon);
+                mMarker = mMap.addMarker(options);
+
                 //Toast.makeText(RegistrationActivity.this, text, Toast.LENGTH_LONG).show();
             }while(c.moveToNext());
         }
