@@ -90,7 +90,7 @@
             android:onClick="onRegistration"
             android:id="@+id/registryButton"
             android:layout_gravity="right" />
-
+<!--
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -98,7 +98,7 @@
             android:onClick="onDelete"
             android:id="@+id/DeleteButton"
             android:layout_gravity="right" />
-
+-->
 
     </LinearLayout>
 

@@ -3,6 +3,7 @@ package example.com;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -102,6 +103,8 @@ public class RegistrationActivity extends FragmentActivity
     private LocationManager mLocationManager;
     private String bestProvider;
     private Marker mMarker = null;
+    private int Reset_flag = 0;
+    private LatLng Reset_LatLng;
 
 
     /* private static final LocationRequest REQUEST = LocationRequest.create()
@@ -110,11 +113,13 @@ public class RegistrationActivity extends FragmentActivity
              .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
  */
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registration);
 //        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 //        setSupportActionBar(toolbar);
+
+
 
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -125,6 +130,12 @@ public class RegistrationActivity extends FragmentActivity
         MySQLiteOpenHelper hlpr = new MySQLiteOpenHelper(getApplicationContext());
         mydb = hlpr.getWritableDatabase();
         ////////////////////////////
+
+        /*Reset_flag = savedInstanceState.getInt("flag",0); //このアクティビティを再起動してきたとき用
+        double latitude_reset = savedInstanceState.getDouble("ido",0.0);
+        double longitude_reset = savedInstanceState.getDouble("keido",0.0);
+        Reset_LatLng =  new LatLng(latitude_reset, longitude_reset);
+*/
 
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
@@ -324,9 +335,13 @@ public class RegistrationActivity extends FragmentActivity
         // Add a marker in Sydney and move the camera
         LatLng stl = new LatLng(latitude, longitude);
 
-        float zoom = 18; // 2.0～21.0
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(stl, zoom));
-
+        if(Reset_flag==1){
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(Reset_LatLng, 15));
+            Reset_flag=0;
+        }else {
+            float zoom = 15; // 2.0～21.0
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(stl, zoom));
+        }
         MarkerOptions options_now = new MarkerOptions();
         options_now.position(stl);
         options_now.title("現在地");
@@ -362,6 +377,11 @@ public class RegistrationActivity extends FragmentActivity
                         else {
                             mydb.delete("mytable", "Name = ?", new String[]{LocationName});//DBにマーカータイトルと同じものがあれば削除
                             Toast.makeText(RegistrationActivity.this, "DBから削除しました", Toast.LENGTH_LONG).show();
+
+                            Reset_flag=1;
+
+
+                            reload();
                         }
                 /*Cursor cursor = mydb.query("mytable", new String[]{"_id", "data"}, null, null, null, null, "_id DESC");
                 startManagingCursor(cursor);
@@ -483,6 +503,17 @@ public class RegistrationActivity extends FragmentActivity
                 myadapter.changeCursor(cursor);*/
                 Log.d("AlertDialog", "Positive which :" + which);
                 Toast.makeText(RegistrationActivity.this, "登録しました", Toast.LENGTH_LONG).show();
+
+                mMarker.remove();   //新規登録地点マーカーを消す
+                LatLng stl = new LatLng(latitude_camera,longitude_camera);
+                MarkerOptions options = new MarkerOptions();
+                options.position(stl);
+                options.title(LocationName);
+                // (1) 色選択
+                BitmapDescriptor icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN);   //代わりに緑のマーカーをおく
+                options.icon(icon);
+                mMarker = mMap.addMarker(options);
+                first_flag=0;   //次に中心座標を取得したとき，今置いたマーカーを消さないため．
             }
         });
 
@@ -500,7 +531,7 @@ public class RegistrationActivity extends FragmentActivity
 
 
     }
-    public void onDelete(View view){
+    /*public void onDelete(View view){
         AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
         alertDialog.setTitle("確認");      //タイトル設定
         alertDialog.setMessage("登録されているすべての地点と情報を削除しますか？");  //内容(メッセージ)設定
@@ -525,6 +556,36 @@ public class RegistrationActivity extends FragmentActivity
 //        alertDialog.create();
         alertDialog.show();
     }
+    */
+    public void reload() {
+        Intent intent = getIntent();
+        overridePendingTransition(0, 0);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        finish();
+
+        overridePendingTransition(0, 0);
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putInt("flag", Reset_flag);
+        CameraPosition cameraPos = mMap.getCameraPosition();
+        outState.putDouble("ido", cameraPos.target.latitude);
+        outState.putDouble("keido", cameraPos.target.longitude);
+
+        super.onSaveInstanceState(outState);
+    }
+    /*@Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        //インスタンスの復帰
+        Reset_flag = savedInstanceState.getInt("flag",0); //このアクティビティを再起動してきたとき用
+        double latitude_reset = savedInstanceState.getDouble("ido",0.0);
+        double longitude_reset = savedInstanceState.getDouble("keido",0.0);
+        Reset_LatLng =  new LatLng(latitude_reset, longitude_reset);
+    }*/
+
 }
 
 

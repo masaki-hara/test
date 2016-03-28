@@ -73,7 +73,7 @@ public class InformSettingActivity extends AppCompatActivity implements OnChecke
 
             finish();   //アプリ終了
         } else {   //GPSがonだったら
-            Toast.makeText(getApplicationContext(), "位置情報は有効です", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "現在の通知間隔は"+time+"分です", Toast.LENGTH_SHORT).show();
         }
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
