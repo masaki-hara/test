@@ -3,37 +3,25 @@ package example.com;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.location.Criteria;
 import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.os.Environment;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.SupportMapFragment;
-import android.app.Activity;
 import android.support.v4.app.FragmentActivity;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import android.location.Location;
 import android.widget.Toast;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -41,31 +29,19 @@ import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import android.util.Log;
 import android.widget.TextView;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
-import android.view.Menu;
-import android.widget.Button;
 import android.widget.EditText;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
-import com.google.android.gms.location.FusedLocationProviderApi;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import com.example.touristspotinform.R;
-import com.google.android.gms.vision.barcode.Barcode;
 
 
-public class RegistrationActivity extends FragmentActivity
-        implements
-        OnMapReadyCallback
-        /*GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
-        LocationListener */ {
+public class RegistrationActivity extends FragmentActivity implements OnMapReadyCallback{
 
     ///SQLite/////////////////////////////////////////////////////
-    static final String DB = "sqlite_sample.db";
+    //static final String DB = "sqlite_sample.db";
+    private static final String DB = Environment.getExternalStorageDirectory() + "/TouristSpotInform.db";   //内部ストレージにDBを保存
     static final int DB_VERSION = 1;
     static final String CREATE_TABLE = "create table mytable ( _id integer primary key autoincrement, Name text not null,URL text not null, IDO double not null, KEIDO double not null );";
     static final String DROP_TABLE = "drop table mytable;";
@@ -73,8 +49,11 @@ public class RegistrationActivity extends FragmentActivity
     private SimpleCursorAdapter myadapter;
     //////////////////////////////////////////////////////////////
 
-    private GoogleMap mMap = null;
-    private GoogleApiClient mLocationClient = null; //LocationClientは廃止，GoogleApiClientに。
+    private GoogleMap mMap = null;  //map
+    private LocationManager mLocationManager;   //map位置情報
+    private Marker mMarker = null;  //mapマーカー
+
+    //////////////////////////////////////////////////////////////
 
     private String LocationName;    //場所名格納
     private String URL;                //URL
@@ -90,40 +69,13 @@ public class RegistrationActivity extends FragmentActivity
 
     private int first_flag=0; //初回Map起動の判定用
 
-    private String sqlstr;
 
-    private boolean mResolvingError = false;
-
-    private FusedLocationProviderApi fusedLocationProviderApi;
-
-    private LocationRequest locationRequest;
-    private Location location;
-    private long lastLocationTime = 0;
-
-    private LocationManager mLocationManager;
-    private String bestProvider;
-    private Marker mMarker = null;
-    private int Reset_flag = 0;
-    private LatLng Reset_LatLng;
-
-
-    /* private static final LocationRequest REQUEST = LocationRequest.create()
-             .setInterval(5000) // 5 seconds
-             .setFastestInterval(16) // 16ms = 60fps
-             .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
- */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registration);
-//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-//        setSupportActionBar(toolbar);
 
-
-
-
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         ////////////////////////////
@@ -131,21 +83,12 @@ public class RegistrationActivity extends FragmentActivity
         mydb = hlpr.getWritableDatabase();
         ////////////////////////////
 
-        /*Reset_flag = savedInstanceState.getInt("flag",0); //このアクティビティを再起動してきたとき用
-        double latitude_reset = savedInstanceState.getDouble("ido",0.0);
-        double longitude_reset = savedInstanceState.getDouble("keido",0.0);
-        Reset_LatLng =  new LatLng(latitude_reset, longitude_reset);
-*/
-
-        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);   //位置情報
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);   //精度が高いを設定
-
-        bestProvider = mLocationManager.getBestProvider(criteria, true);
-
-
     }
-    private static class MySQLiteOpenHelper extends SQLiteOpenHelper {
+
+    private static class MySQLiteOpenHelper extends SQLiteOpenHelper {  //SQLite用
         public MySQLiteOpenHelper(Context c) {
             super(c, DB, null, DB_VERSION);
         }
@@ -157,143 +100,8 @@ public class RegistrationActivity extends FragmentActivity
             onCreate(db);
         }
     }
-        /*
-        // LocationRequest を生成して精度、インターバルを設定
-        locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(16);
 
-        fusedLocationProviderApi = LocationServices.FusedLocationApi;
-
-//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-//        fab.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
-//            }
-//        });
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////
-        mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getMap();
-        if (mMap != null) {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return;
-            }
-            mMap.setMyLocationEnabled(true);
-        }
-        mLocationClient = new GoogleApiClient.Builder(this)
-                .addApi(LocationServices.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-        if (mLocationClient != null) {
-            // Google Play Servicesに接続
-            mLocationClient.connect();
-        }
-    }
-    /////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /*
-        public static class PlaceholderFragment extends MapFragment{
-            private GoogleMap mMap;
-
-            public PlaceholderFragment() {
-            }
-
-            @Override
-            public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                     Bundle savedInstanceState){
-                super.onCreateView(inflater, container, savedInstanceState);
-                View rootView = inflater.inflate(R.layout.activity_registration, container, false);
-                return rootView;
-            }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (mLocationManager != null) {
-            if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return;
-                }
-                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, (android.location.LocationListener) this);
-            } else {
-                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, (android.location.LocationListener) this);
-            }
-        }
-    }
-        /*
-    /////////////////////////////////////////////////////////////////////////////////////////////////
-    public void onLocationChanged(Location location) {
-        // TODO Auto-generated method stub
-        // 現在地に移動
-        CameraPosition cameraPos = new CameraPosition.Builder()
-                .target(new LatLng(location.getLatitude(), location.getLongitude())).zoom(7.0f)
-                .bearing(0).build();
-        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos));
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    public void onConnected(Bundle connectionHint) {
-        // TODO Auto-generated method stub
-        Location currentLocation = fusedLocationProviderApi.getLastLocation(mLocationClient);
-        try {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return;
-            }
-            fusedLocationProviderApi.requestLocationUpdates(mLocationClient, locationRequest, this);
-            // Schedule a Thread to unregister location listeners
-            Executors.newScheduledThreadPool(1).schedule(new Runnable() {
-                @Override
-                public void run() {
-                    fusedLocationProviderApi.removeLocationUpdates(mLocationClient, RegistrationActivity.this);
-                }
-            }, 60000, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast toast = Toast.makeText(this, "例外が発生、位置情報のPermissionを許可していますか？", Toast.LENGTH_SHORT);
-            toast.show();
-
-            //MainActivityに戻す
-            finish();
-        }
-        }
-
-    //@Override
-    public void onDisconnected() {
-        // TODO Auto-generated method stub
-        }
-    /////////////////////////////////////////////////////////////////////////////////////////////////
-*/
-    public void onMapReady(GoogleMap googleMap) {
+    public void onMapReady(GoogleMap googleMap) {   //map画面起動時の処理
         final AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
         mMap = googleMap;
         //LocationManagerの取得
@@ -309,24 +117,14 @@ public class RegistrationActivity extends FragmentActivity
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        //Location myLocate = mLocationManager.getLastKnownLocation(bestProvider);
-        Location myLocate = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        /*if(myLocate == null)
-            myLocate = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            Toast.makeText(RegistrationActivity.this, "Use GPS...", Toast.LENGTH_LONG).show();
-        }*/
+        Location myLocate = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);    //GPSでの位置情報取得（過去に取得した最新の）
         if(myLocate == null){
-            myLocate = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            //Toast.makeText(RegistrationActivity.this, "Couldn't use GPS.\nUse NETWORK", Toast.LENGTH_LONG).show();
+            myLocate = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);     //NETWORK
         }
-        //MapControllerの取得
-        //MapController MapCtrl = mapView.getController();
         if (myLocate != null) {
             //現在地情報取得成功
-            //緯度の取得
-            latitude = myLocate.getLatitude();
-            //経度の取得
-            longitude = myLocate.getLongitude();
+            latitude = myLocate.getLatitude();      //緯度の取得
+            longitude = myLocate.getLongitude();    //経度の取得
         } else {
             //現在地情報取得失敗時の処理
             Toast.makeText(this, "現在地取得不可", Toast.LENGTH_SHORT).show();
@@ -334,34 +132,23 @@ public class RegistrationActivity extends FragmentActivity
 
         // Add a marker in Sydney and move the camera
         LatLng stl = new LatLng(latitude, longitude);
+        float zoom = 15; // 2.0～21.0
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(stl, zoom));  //マップの表示を現在地中心に動かす
+        MarkerOptions options_now = new MarkerOptions();    //マーカーオプションのインスタンス
 
-        if(Reset_flag==1){
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(Reset_LatLng, 15));
-            Reset_flag=0;
-        }else {
-            float zoom = 15; // 2.0～21.0
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(stl, zoom));
-        }
-        MarkerOptions options_now = new MarkerOptions();
-        options_now.position(stl);
-        options_now.title("現在地");
+        options_now.position(stl);  //マーカーの位置指定
+        options_now.title("現在地");   //マーカーのタイトル設定
         // アイコンの色選択
-        BitmapDescriptor icon_now = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE);
+        BitmapDescriptor icon_now = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE);    //マーカー色：青
         options_now.icon(icon_now);
-        mMarker = mMap.addMarker(options_now);
+        mMarker = mMap.addMarker(options_now);  //上記の設定でマーカー追加
 
-        //mMap.moveCamera(CameraUpdateFactory.newLatLng(stl));
-        mMap.setOnMarkerClickListener(new OnMarkerClickListener() {
+        mMap.setOnMarkerClickListener(new OnMarkerClickListener() { //マーカーがクリックされた時の処理
 
             public boolean onMarkerClick(Marker marker) {
-
-                // この marker は保存するとリークすると思われる。
                 final String msg = marker.getTitle();
-                //Toast.makeText(RegistrationActivity.this, msg, Toast.LENGTH_LONG).show();
-
                 // ダイアログの設定
                 //alertDialog.setIcon(R.drawable.icon);   //アイコン設定
-
                 alertDialog.setTitle("登録地点の削除");      //タイトル設定
                 alertDialog.setMessage("選択した地点を削除していいですか？");  //内容(メッセージ)設定
 
@@ -371,23 +158,14 @@ public class RegistrationActivity extends FragmentActivity
                         // OKボタン押下時の処理
                         //ContentValues values = new ContentValues();
                         LocationName = msg;//マーカータイトルをコピー
-                        if(LocationName.equals("現在地")  || LocationName.equals("新規登録地点")) {
+                        if (LocationName.equals("現在地") || LocationName.equals("新規登録地点")) {  //選んだマーカーが現在地か新規登録地点のどちらかだったら
                             Toast.makeText(RegistrationActivity.this, "現在地・新規登録地点はDBに登録されていません", Toast.LENGTH_LONG).show();
-                        }
-                        else {
+                        } else {
                             mydb.delete("mytable", "Name = ?", new String[]{LocationName});//DBにマーカータイトルと同じものがあれば削除
                             Toast.makeText(RegistrationActivity.this, "DBから削除しました", Toast.LENGTH_LONG).show();
-
-                            Reset_flag=1;
-
-
-                            reload();
+                            reload();   //RegistrationActivityの再起動
                         }
-                /*Cursor cursor = mydb.query("mytable", new String[]{"_id", "data"}, null, null, null, null, "_id DESC");
-                startManagingCursor(cursor);
-                myadapter.changeCursor(cursor);*/
                         Log.d("AlertDialog", "Positive which :" + which);
-
                     }
                 });
 
@@ -400,39 +178,23 @@ public class RegistrationActivity extends FragmentActivity
                 });
 
                 // ダイアログの作成と描画
-//        alertDialog.create();
                 alertDialog.show();
                 return false;
             }
         });
 
-
-        String sql = "select _id,Name " +
-        "from mytable " +
-        "where Name like null " +
-        "order by null " +
-        "limit 100";
-
-//         rawQueryを使用
-     String SQL_SELECT = "SELECT _id,Name,IDO,KEIDO FROM mytable";
+//      rawQueryを使用し，DBを検索
+        String SQL_SELECT = "SELECT _id,Name,IDO,KEIDO FROM mytable";
 //     selectionArgs : WHERE句を使用するときに指定する。
-     Cursor c = mydb.rawQuery(SQL_SELECT, null);
+        Cursor c = mydb.rawQuery(SQL_SELECT, null);
 
-//         Cursorを先頭に移動する 検索結果が0件の場合にはfalseが返る
-//        if (mCursor.moveToFirst()) {
-//            String text = mCursor.getString(mCursor.getColumnIndex("Name"));
-//             TextViewに表示する
-//            Toast.makeText(RegistrationActivity.this, text, Toast.LENGTH_LONG).show();
-//        } else {
-//             検索結果が無いのでTextViewをクリアする
-//           ;
-//        }
-        if(c.moveToFirst()){
+//      Cursorを先頭に移動する 検索結果が0件の場合にはfalseが返る
+        if(c.moveToFirst()){    //DB内全ての地点情報をmap上に緑マーカーで設置
             do{
-                String text = c.getString(c.getColumnIndex("Name"));
-                latitude_db = c.getDouble(c.getColumnIndex("IDO"));
-                longitude_db = c.getDouble(c.getColumnIndex("KEIDO"));;
-                LatLng point_db = new LatLng(latitude_db, longitude_db); //databese 読み出し用
+                String text = c.getString(c.getColumnIndex("Name"));    //マーカータイトルは「場所の名前」
+                latitude_db = c.getDouble(c.getColumnIndex("IDO"));     //緯度
+                longitude_db = c.getDouble(c.getColumnIndex("KEIDO"));  //経度
+                LatLng point_db = new LatLng(latitude_db, longitude_db); //マーカーポジション用
 
                 MarkerOptions options = new MarkerOptions();
                 options.position(point_db);
@@ -441,123 +203,97 @@ public class RegistrationActivity extends FragmentActivity
                 BitmapDescriptor icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN);
                 options.icon(icon);
                 mMarker = mMap.addMarker(options);
-
-                //Toast.makeText(RegistrationActivity.this, text, Toast.LENGTH_LONG).show();
             }while(c.moveToNext());
         }
 
 
     }
-    public void onGetCenter(View view) {
-        if(first_flag==0){
-            first_flag++;
+    public void onGetCenter(View view) {    //中心座標取得ボタンが押された時の処理
+        if(first_flag==0){  //初回時と地点登録直後だけ，直前のマーカーを消さない。
+            first_flag++;   //現在地（青）と登録地点（緑）マーカーを消さないため
         }else{
-            mMarker.remove();
+            mMarker.remove();   //直前の新規地点登録マーカーを消す。
         }
-        CameraPosition cameraPos = mMap.getCameraPosition();
-        latitude_camera=cameraPos.target.latitude;
-        longitude_camera=cameraPos.target.longitude;
-        LatLng stl = new LatLng(latitude_camera,longitude_camera);
-        mMarker = mMap.addMarker(new MarkerOptions().position(stl).title("新規登録地点"));
+        CameraPosition cameraPos = mMap.getCameraPosition();    //map上のカメラの位置
+        latitude_camera=cameraPos.target.latitude;  //map中心部の緯度取得
+        longitude_camera=cameraPos.target.longitude;    //map中心部の経度取得
+        LatLng stl = new LatLng(latitude_camera,longitude_camera);  //位置情報
+        mMarker = mMap.addMarker(new MarkerOptions().position(stl).title("新規登録地点"));    //新規登録地点マーカー追加（赤）
         // オブジェクトを取得
 
         TextView txtIdo = (TextView) findViewById(R.id.ido);//緯度を入れるための箱
         TextView txtKeido = (TextView) findViewById(R.id.keido);//経度を入れるための箱
 
-
-        //Toast.makeText(this, "中心位置\n緯度:" + cameraPos.target.latitude + "\n経度:" + cameraPos.target.longitude, Toast.LENGTH_LONG).show();
         // 結果表示用テキストに設定
-        txtIdo.setText(String.valueOf("緯度：" + latitude_camera)); //double型をstringにしてから渡す
-        txtKeido.setText(String.valueOf("経度：" + longitude_camera)); //double型をstringにしてから渡す
+        txtIdo.setText(String.valueOf("緯度：" + latitude_camera)); //double型をstringにしてから渡す。map中心部の緯度を画面に表示する
+        txtKeido.setText(String.valueOf("経度：" + longitude_camera)); //double型をstringにしてから渡す。map中心部の緯度を画面に表示する
     }
 
-        public void onRegistration(View view){
-        AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
+        public void onRegistration(View view){  //登録ボタンを押したときの処理
+        AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);  //ダイアログ用インスタンス
             // 入力内容を取得
-            EditText etxtLocationName = (EditText) findViewById(R.id.editLoCationName);//入力された場所の名前格納用
-            EditText etxtUrl = (EditText) findViewById(R.id.editURL);//URL格納用
-            final String strLocationName = etxtLocationName.getText().toString();
-            final String strUrl = etxtUrl.getText().toString();
-            // ダイアログの設定
-            //alertDialog.setIcon(R.drawable.icon);   //アイコン設定
-        alertDialog.setTitle("確認");      //タイトル設定
-        alertDialog.setMessage("以下の内容で登録しますか？\n\n場所名："
-                + strLocationName + "\nURL：" + strUrl + "\n緯度：" + latitude_camera + "\n経度：" + longitude_camera);  //内容(メッセージ)設定
+            EditText etxtLocationName = (EditText) findViewById(R.id.editLoCationName); //入力された場所の名前格納用
+            EditText etxtUrl = (EditText) findViewById(R.id.editURL);   //URL格納用
+            TextView txtIdo = (TextView) findViewById(R.id.ido);    //緯度を入っている箱(中心座標を一度は取得したことがあるかチェック用)
+            final String strLocationName = etxtLocationName.getText().toString();   //入力された「場所の名前」を文字列として格納
+            final String strUrl = etxtUrl.getText().toString(); //入力されたURL// を文字列として格納
+            if(!etxtLocationName.getText().toString().equals("") && !txtIdo.getText().toString().equals("")) { //「場所の名前」が未入力じゃなく，過去に中心座標を取得していたら実行
+                // ダイアログの設定
+                //alertDialog.setIcon(R.drawable.icon);   //アイコン設定
+                alertDialog.setTitle("確認");      //タイトル設定
+                alertDialog.setMessage("以下の内容で登録しますか？\n\n場所名："
+                        + strLocationName + "\nURL：" + strUrl + "\n緯度：" + latitude_camera + "\n経度：" + longitude_camera);  //内容(メッセージ)設定
 
-        // OK(肯定的な)ボタンの設定
-        alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                // OKボタン押下時の処理
-                ContentValues values = new ContentValues();
-                LocationName=strLocationName;
-                URL=strUrl;
-                values.put("Name",LocationName);
-                values.put("URL",URL);
-                values.put("IDO",latitude_camera);
-                values.put("KEIDO",longitude_camera);
+                // OK(肯定的な)ボタンの設定
+                alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // OKボタン押下時の処理
+                        ContentValues values = new ContentValues();
+                        //以下，DBに登録地点の情報を追加
+                        LocationName = strLocationName;
+                        URL = strUrl;
+                        values.put("Name", LocationName);
+                        values.put("URL", URL);
+                        values.put("IDO", latitude_camera);
+                        values.put("KEIDO", longitude_camera);
 
-                mydb.insert("mytable", null, values);
+                        mydb.insert("mytable", null, values);
 
-                /*Cursor cursor = mydb.query("mytable", new String[]{"_id", "data"}, null, null, null, null, "_id DESC");
-                startManagingCursor(cursor);
-                myadapter.changeCursor(cursor);*/
-                Log.d("AlertDialog", "Positive which :" + which);
-                Toast.makeText(RegistrationActivity.this, "登録しました", Toast.LENGTH_LONG).show();
+                        Log.d("AlertDialog", "Positive which :" + which);
+                        Toast.makeText(RegistrationActivity.this, "登録しました", Toast.LENGTH_LONG).show();
 
-                mMarker.remove();   //新規登録地点マーカーを消す
-                LatLng stl = new LatLng(latitude_camera,longitude_camera);
-                MarkerOptions options = new MarkerOptions();
-                options.position(stl);
-                options.title(LocationName);
-                // (1) 色選択
-                BitmapDescriptor icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN);   //代わりに緑のマーカーをおく
-                options.icon(icon);
-                mMarker = mMap.addMarker(options);
-                first_flag=0;   //次に中心座標を取得したとき，今置いたマーカーを消さないため．
+                        mMarker.remove();   //新規登録地点マーカーを消す
+                        LatLng stl = new LatLng(latitude_camera, longitude_camera);
+                        MarkerOptions options = new MarkerOptions();
+                        options.position(stl);
+                        options.title(LocationName);
+                        // (1) 色選択
+                        BitmapDescriptor icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN);   //代わりに緑のマーカーをおく
+                        options.icon(icon);
+                        mMarker = mMap.addMarker(options);
+                        first_flag = 0;   //次に中心座標を取得したとき，今置いたマーカーを消さないため．
+                    }
+                });
+
+                // NG(否定的な)ボタンの設定
+                alertDialog.setNegativeButton("キャンセル", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // キャンセルボタン押下時の処理
+                        Log.d("AlertDialog", "Negative which :" + which);
+                    }
+                });
+
+                // ダイアログの作成と描画
+//              alertDialog.create();
+                alertDialog.show();
             }
-        });
-
-            // NG(否定的な)ボタンの設定
-            alertDialog.setNegativeButton("キャンセル", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                // NGボタン押下時の処理
-                Log.d("AlertDialog", "Negative which :" + which);
+            else{   //場所の名前が未入力の時
+                Toast.makeText(RegistrationActivity.this, "場所の名前が未入力か，中心座標を取得していません", Toast.LENGTH_SHORT).show();
             }
-        });
-
-        // ダイアログの作成と描画
-//        alertDialog.create();
-        alertDialog.show();
-
 
     }
-    /*public void onDelete(View view){
-        AlertDialog.Builder alertDialog=new AlertDialog.Builder(this);
-        alertDialog.setTitle("確認");      //タイトル設定
-        alertDialog.setMessage("登録されているすべての地点と情報を削除しますか？");  //内容(メッセージ)設定
-        // OK(肯定的な)ボタンの設定
-        alertDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                // OKボタン押下時の処理
-                mydb.delete("mytable", "_id like '%'", null);
-                Log.d("AlertDialog", "Positive which :" + which);
-                Toast.makeText(RegistrationActivity.this, "削除しました", Toast.LENGTH_LONG).show();
-            }
-        });
-        // NG(否定的な)ボタンの設定
-        alertDialog.setNegativeButton("キャンセル", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                // NGボタン押下時の処理
-                Log.d("AlertDialog", "Negative which :" + which);
-            }
-        });
 
-        // ダイアログの作成と描画
-//        alertDialog.create();
-        alertDialog.show();
-    }
-    */
-    public void reload() {
+    public void reload() {  //マーカーを削除したときに実行される再起動処理（マーカーの再描画が目的）
         Intent intent = getIntent();
         overridePendingTransition(0, 0);
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
@@ -566,26 +302,16 @@ public class RegistrationActivity extends FragmentActivity
         overridePendingTransition(0, 0);
         startActivity(intent);
     }
-
+/*
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        outState.putInt("flag", Reset_flag);
+        //outState.putInt("flag", Reset_flag);
         CameraPosition cameraPos = mMap.getCameraPosition();
         outState.putDouble("ido", cameraPos.target.latitude);
         outState.putDouble("keido", cameraPos.target.longitude);
 
         super.onSaveInstanceState(outState);
-    }
-    /*@Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        //インスタンスの復帰
-        Reset_flag = savedInstanceState.getInt("flag",0); //このアクティビティを再起動してきたとき用
-        double latitude_reset = savedInstanceState.getDouble("ido",0.0);
-        double longitude_reset = savedInstanceState.getDouble("keido",0.0);
-        Reset_LatLng =  new LatLng(latitude_reset, longitude_reset);
     }*/
-
 }
 
 
